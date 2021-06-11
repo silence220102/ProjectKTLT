@@ -1,3 +1,13 @@
 nam1       0       1
 nam2       0       1
 nam7       0       1
+Nam1       100       2
+Nam2       100       2
+Nam3       100       2
+Nam5       100       2
+Nam6       100       2
+Nam7       100       2
+Nam9       100       2
+Nam10       100       2
+Nam11       100       2
+Nam12       100       2

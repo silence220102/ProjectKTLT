@@ -58,9 +58,6 @@ int lastSPEED; // Biến nhận giá trị SPEED tại thời điểm bắt đ�
 string name; bool savegame = 1;
 int saveX = 10; // Tọa độ X của Save
 
-int timeCD = 10;
-std::atomic<bool> timeStopLeft(false), timeStopRight(false);
-
 //.....................................Cố định màn hình Console....................................//
 void FixConsoleWindow()
 {
@@ -316,6 +313,7 @@ void StartGameAfterOption()
 void GabageCollect(POINT**& X)
 {
 	memset(X, 0, sizeof(X[0][0]) * MAX_CAR * MAX_CAR_LENGTH);
+	delete[]Y_FINISH;
 }
 
 void ExitGame(HANDLE t)
@@ -415,7 +413,7 @@ void saveY(POINT*& a)
 
 bool IsImpactY(const POINT& p,POINT* a)
 {
-	for (int i = 0; i <= Yfinish; i++)
+	for (int i = 0; i < Yfinish; i++)
 	{
 		if (p.x == a[i].x && p.y == 2)
 			return true;
@@ -429,7 +427,7 @@ bool IsImpactY(const POINT& p,POINT* a)
 void MoveCars()
 {
 	// xe chạy từ trái qua
-	if (timeStopLeft == false) {
+	
 		for (int i = 1; i < MAX_CAR; i += 2)
 		{
 			cnt = 0;
@@ -444,8 +442,6 @@ void MoveCars()
 
 			} while (cnt < SPEED); // SPEED =1 thì cách "=" nhích 1 ô, SPEED =2 thì "="nhích qua 1 ô xong nhích tiếp tục 1 ô nữa => di chuyển 1 lần 2 ô
 		}
-	}
-	if (timeStopRight == false) {
 		// xe chạy từ phải qua
 		for (int i = 0; i < MAX_CAR; i += 2)
 		{
@@ -460,7 +456,6 @@ void MoveCars()
 
 			} while (cnt < SPEED);
 		}
-	}
 }
 void EraseCars()
 {
@@ -516,23 +511,10 @@ void MoveUp()
 	}
 }
 
-void SubThreadCDStart() {
-	while (STATE == true) {
-		Sleep(3000);
-		timeStopRight = false;
-		timeStopLeft = true;
-		Sleep(3000);
-		timeStopLeft = false;
-		timeStopRight = true;
-	}
-}
-
 void SubThread()
 {
-	thread thd(SubThreadCDStart);
 	while (1) {
-		if (STATE)
-		{
+		if (STATE) {
 			switch (MOVING)
 			{
 			case'A':MoveLeft();
@@ -577,8 +559,6 @@ void SubThread()
 			Sleep(25); // Tốc độ quay lại vòng lập trễ 25 giây.
 		}
 	}
-	TerminateThread(thd.native_handle(), 0);
-	thd.detach();
 }
 
 void save()
@@ -605,10 +585,14 @@ void save()
 	ofs1 << endl;
 	for (int i = 0; i < MAX_CAR; i++) { // toa do x y cua xe
 		for (int j = 0; j < MAX_CAR_LENGTH; j++) {
-			ofs1 << X[i][j].x << " " << X[i][j].y << " ";
+			ofs1 << X[i][j].x << " " << X[i][j].y << endl;
 		}
 	}
-	ofs1 << endl;
+	ofs1 << Yfinish << endl;
+	for (int i = 0; i < Yfinish; i++)
+	{
+		ofs1 << Y_FINISH[i].x << " " << Y_FINISH[i].y << endl;
+	}
 	ofs1 << STATE << endl;
 	ofs1 << SPEED << endl;
 	ofs1 << score << endl;
@@ -634,10 +618,16 @@ void loadG(string data)
 				ifs >> X[i][j].x >> X[i][j].y;
 			}
 		}
+		ifs >> Yfinish;
+		for (int i = 0; i < Yfinish; i++)
+		{
+			ifs >> Y_FINISH[i].x >> Y_FINISH[i].y;
+		}
 		ifs >> STATE;
 		ifs >> SPEED;
 		ifs >> score;
 		ifs >> lastSPEED;
+		
 	}
 }
 void ReadNameFile() // xuất ra các file save mà bạn lưu
@@ -677,6 +667,11 @@ void load2()
 	if (savegame) {
 		DrawBoardGame();
 		DrawSticker(Y, "Y");
+		for (int i = 0; i < Yfinish; i++)
+		{
+			GotoXY(Y_FINISH[i].x, Y_FINISH[i].y);
+			cout << "Y";
+		}
 		DrawCarsManually(X);
 	}
 	else {
@@ -885,7 +880,6 @@ void GAME()
 		{
 			if (counter == 1) // StartGame
 			{
-				haha:
 				system("cls");
 				if (SPEED == 1)
 					StartGame();
@@ -918,14 +912,13 @@ void GAME()
 					else
 					{
 						if (temp == 'Y') {
-							ResetData();
-							goto haha; // Y sẽ Reset trò chơi khi thua
+							StartGame();
+							// Y sẽ Reset trò chơi khi thua
 						}
 						else if ((temp == 'N') || (temp == 'n')) { // N thoát game
 							ExitGame(t1.native_handle());
 							t1.detach();
-							ResetData();
-							break;
+							return;
 						}
 					}
 				}
@@ -946,9 +939,9 @@ void GAME()
 			}
 			if (counter == 3)
 			{
+				ResetData();
 				load2();
 				if (savegame) {
-					system("cls");
 					DataAfterOption();
 					goto Game; // di chuyển tới Game: ( ở trên counter ==1)
 				}
