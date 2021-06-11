@@ -1,0 +1,4 @@
+.gitattribute
+x64
+.vs
+Debug
