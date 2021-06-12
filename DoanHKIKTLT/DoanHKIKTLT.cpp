@@ -58,6 +58,9 @@ int lastSPEED; // Biến nhận giá trị SPEED tại thời điểm bắt đ�
 string name; bool savegame = 1;
 int saveX = 10; // Tọa độ X của Save
 
+int Left = 0, Right = 0;
+std::atomic<bool> timeStopLeft(false), timeStopRight(false);
+
 //.....................................Cố định màn hình Console....................................//
 void FixConsoleWindow()
 {
@@ -313,7 +316,8 @@ void StartGameAfterOption()
 void GabageCollect(POINT**& X)
 {
 	memset(X, 0, sizeof(X[0][0]) * MAX_CAR * MAX_CAR_LENGTH);
-	delete[]Y_FINISH;
+	memset(Y_FINISH, 0, sizeof(Y_FINISH[0]) * (WIDTH_GAME - 2));
+	Y_FINISH = NULL;
 }
 
 void ExitGame(HANDLE t)
@@ -427,7 +431,7 @@ bool IsImpactY(const POINT& p,POINT* a)
 void MoveCars()
 {
 	// xe chạy từ trái qua
-	
+	if (timeStopLeft == false) {
 		for (int i = 1; i < MAX_CAR; i += 2)
 		{
 			cnt = 0;
@@ -442,7 +446,9 @@ void MoveCars()
 
 			} while (cnt < SPEED); // SPEED =1 thì cách "=" nhích 1 ô, SPEED =2 thì "="nhích qua 1 ô xong nhích tiếp tục 1 ô nữa => di chuyển 1 lần 2 ô
 		}
+	}
 		// xe chạy từ phải qua
+	if (timeStopRight == false) {
 		for (int i = 0; i < MAX_CAR; i += 2)
 		{
 			cnt = 0;
@@ -456,6 +462,7 @@ void MoveCars()
 
 			} while (cnt < SPEED);
 		}
+	}
 }
 void EraseCars()
 {
@@ -508,6 +515,17 @@ void MoveUp()
 		DrawSticker(Y, " ");
 		Y.y--;
 		DrawSticker(Y, "Y");
+	}
+}
+
+void SubThreadCD() {
+	while (true) {
+		timeStopRight = false;
+		timeStopLeft = true;
+		Sleep(3000);
+		timeStopRight = true;
+		timeStopLeft = false;
+		Sleep(3000);
 	}
 }
 
@@ -792,6 +810,7 @@ void Option() // Tùy chỉnh trong game ( LEVEL, VOLUME )
 
 void GAME()
 {
+	ok:
 	SetColor(11);
 	GotoXY(40, 3);
 	cout << "  _____          __  __ ______ ";
@@ -886,6 +905,7 @@ void GAME()
 				else StartGameAfterOption();
 				Game:
 				thread t1(SubThread);
+				thread t2(SubThreadCD);
 				while (1)
 				{
 					temp = toupper(_getch());
@@ -918,7 +938,11 @@ void GAME()
 						else if ((temp == 'N') || (temp == 'n')) { // N thoát game
 							ExitGame(t1.native_handle());
 							t1.detach();
-							return;
+							TerminateThread(t2.native_handle(), 0);
+							t2.detach();
+							X = NULL;
+							timeStopLeft = timeStopRight = false;
+							goto ok;
 						}
 					}
 				}
