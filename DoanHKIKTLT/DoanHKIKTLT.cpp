@@ -941,6 +941,7 @@ void GAME()
 							TerminateThread(t2.native_handle(), 0);
 							t2.detach();
 							X = NULL;
+							SPEED = 1;
 							timeStopLeft = timeStopRight = false;
 							goto ok;
 						}
